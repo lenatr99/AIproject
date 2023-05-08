@@ -57,6 +57,7 @@ def add_two(mat):
 # 3 marks for correct checking
 
 def game_state(mat):
+    score = sum([sum(row) for row in mat])
     # check for win cell
     for i in range(len(mat)):
         for j in range(len(mat[0])):
@@ -80,7 +81,7 @@ def game_state(mat):
     for j in range(len(mat)-1):  # check up/down entries on last column
         if mat[j][len(mat)-1] == mat[j+1][len(mat)-1]:
             return 'not over'
-    return 'lose'
+    return 'lose', score
 
 ###########
 # Task 2a #
@@ -159,7 +160,7 @@ def merge(mat, done):
     return mat, done
 
 def up(game):
-    print("up")
+    # print("up")
     # return matrix after shifting up
     game = transpose(game)
     game, done = cover_up(game)
@@ -169,7 +170,7 @@ def up(game):
     return game, done
 
 def down(game):
-    print("down")
+    # print("down")
     # return matrix after shifting down
     game = reverse(transpose(game))
     game, done = cover_up(game)
@@ -179,7 +180,7 @@ def down(game):
     return game, done
 
 def left(game):
-    print("left")
+    # print("left")
     # return matrix after shifting left
     game, done = cover_up(game)
     game, done = merge(game, done)
@@ -187,7 +188,7 @@ def left(game):
     return game, done
 
 def right(game):
-    print("right")
+    # print("right")
     # return matrix after shifting right
     game = reverse(game)
     game, done = cover_up(game)
@@ -195,3 +196,22 @@ def right(game):
     game = cover_up(game)[0]
     game = reverse(game)
     return game, done
+
+
+def get_reward(state, action, next_state):
+    max_tile = max(map(max, state))
+    next_max_tile = max(map(max, next_state))
+    game_over = game_state(next_state)[0]
+    game_over1 = game_over in ['win', 'lose']
+    score = sum(map(sum, state))
+    next_score = sum(map(sum, next_state))
+    score_diff = next_score - score
+
+    if game_over1:
+        if game_over == 'lose':
+            punishment = -1000
+            return punishment
+        else:
+            return 1000  # Reward for winning the game
+    else:
+        return score_diff * max_tile + (next_max_tile - max_tile) * 100  # Encourage merging higher tiles and penalize no progress

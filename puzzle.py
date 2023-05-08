@@ -51,6 +51,7 @@ class GameGrid(Frame):
         else:
             self.mainloop()
 
+
     def train_agent(self):
         plt.ion()  # Enable interactive mode
         fig, ax = plt.subplots()  # Create a figure and axis for the plot

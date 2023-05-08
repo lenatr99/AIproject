@@ -1,24 +1,23 @@
-2048 Python
+Training AI models on 2048 in  Python
 ===========
 
-[![Run on Repl.it](https://repl.it/badge/github/yangshun/2048-python)](https://repl.it/github/yangshun/2048-python)
 
----
-
-**⚠️NOTE⚠️**: We won't be accepting any contributions/changes to the project anymore. It is now readonly.
-
----
 
 Based on the popular game [2048](https://github.com/gabrielecirulli/2048) by Gabriele Cirulli. The game's objective is to slide numbered tiles on a grid to combine them to create a tile with the number 2048. Here is a Python version that uses TKinter! 
+
+We use different AI models to train the game to play itself. The models we use are:
+* QLearning
+* Deep QLearning
+
 
 ![screenshot](img/screenshot.png)
 
 To start the game, run:
     
-    $ python3 puzzle.py
+    $ python puzzle.py
 
 
-Contributors:
+Contributors for the code of the game:
 ==
 
 - [Yanghun Tay](http://github.com/yangshun)

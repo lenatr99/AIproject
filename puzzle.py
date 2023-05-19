@@ -12,11 +12,23 @@ import numpy as np
 import threading
 import queue
 import matplotlib
+import math
 matplotlib.use('Agg')
 
 
 def gen():
     return random.randint(0, c.GRID_LEN - 1)
+
+def change_values(X):
+    power_mat = np.zeros(shape=(1,4,4,16),dtype=np.float32)
+    for i in range(4):
+        for j in range(4):
+            if(X[i][j]==0):
+                power_mat[0][i][j][0] = 1.0
+            else:
+                power = int(math.log(X[i][j],2))
+                power_mat[0][i][j][power] = 1.0
+    return power_mat  
 
 class GameGrid(Frame):
     def __init__(self, ai_mode=False):
@@ -31,14 +43,6 @@ class GameGrid(Frame):
             c.KEY_DOWN: logic.down,
             c.KEY_LEFT: logic.left,
             c.KEY_RIGHT: logic.right,
-            c.KEY_UP_ALT1: logic.up,
-            c.KEY_DOWN_ALT1: logic.down,
-            c.KEY_LEFT_ALT1: logic.left,
-            c.KEY_RIGHT_ALT1: logic.right,
-            c.KEY_UP_ALT2: logic.up,
-            c.KEY_DOWN_ALT2: logic.down,
-            c.KEY_LEFT_ALT2: logic.left,
-            c.KEY_RIGHT_ALT2: logic.right,
         }
 
         self.grid_cells = []
@@ -62,17 +66,18 @@ class GameGrid(Frame):
 
     def train_agent(self):
         fig, ax = plt.subplots()  # Create a figure and axis for the plot
-
-        num_episodes = 1000
+        total_iters = 1
+        num_episodes = 100
         for episode in range(num_episodes):  # Train for 1000 episodes
-            self.agent.epsilon -= (1.0 - self.agent.epsilon_min) / num_episodes
             self.matrix = logic.new_game(c.GRID_LEN)
             self.history_matrixs = []
             # self.update_grid_cells()
 
             while True:
                 state = self.matrix.copy()
-                state_1 = np.array(self.matrix).flatten()  # flatten the state
+                state_1 = change_values(state)
+                print(state_1.shape)
+                # state_1 = np.array(state,dtype = np.float32).reshape(1,4,4,16)
                 action = self.agent.choose_action(state_1)
                 action_2 = c.ACTIONS[action]
                 action_done = self.perform_action(action_2)
@@ -83,11 +88,11 @@ class GameGrid(Frame):
 
                 if action_done:
                     next_state = self.matrix.copy()
-                    next_state_1 = np.array(self.matrix).flatten() # flatten the state
+                    next_state_1 = change_values(next_state) # flatten the state
                     reward = logic.get_reward(state, action, next_state)
                     game_over = logic.game_state(self.matrix)[0] in ['win', 'lose']
-                    self.agent.learn(state_1, action, reward, next_state_1, game_over)
-                    print(f"iteration {episode} reward: {reward} epsilon: {self.agent.epsilon}\n")
+                    self.agent.learn(state_1, action, reward, next_state_1, game_over, episode, total_iters)
+                    print(f"iteration {episode} reward: {reward} epsilon: {self.agent.epsilon} total iters: {total_iters}\n")
 
                 game_over = logic.game_state(self.matrix)[0] in ['win', 'lose']
                 if game_over:
@@ -95,6 +100,7 @@ class GameGrid(Frame):
                     self.save_score(score)
                     self.plot_scores(fig, ax, episode)
                     break
+                total_iters += 1
 
     def perform_action(self, action):
         if action in self.commands:
@@ -187,7 +193,7 @@ class GameGrid(Frame):
     def plot_scores(self, fig, ax, episode):
         ax.clear()  # Clear the axis
         x_values = list(range(episode + 1))  # X-axis represents the number of episodes
-        ax.scatter(x_values, self.scores, marker='o')
+        ax.plot(x_values, self.scores)
         ax.set_xlabel('Episode')
         ax.set_ylabel('Score')
         ax.set_title('Scores over Episodes')

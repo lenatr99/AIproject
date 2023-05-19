@@ -3,17 +3,12 @@ from tkinter import Frame, Label, CENTER
 import random
 import logic
 import constants as c
-import dqn_agent as dqa  
+import q_learning_agent as qla
 import time
 import pickle
 import matplotlib.pyplot as plt
+import matplotlib.dates as mdates
 import datetime
-import numpy as np
-import threading
-import queue
-import matplotlib
-matplotlib.use('Agg')
-
 
 def gen():
     return random.randint(0, c.GRID_LEN - 1)
@@ -42,59 +37,59 @@ class GameGrid(Frame):
         }
 
         self.grid_cells = []
-        # self.init_grid()
+        self.init_grid()
         self.matrix = logic.new_game(c.GRID_LEN)
         self.history_matrixs = []
-        # self.update_grid_cells()
+        self.update_grid_cells()
         self.scores = []
-
 
         self.ai_mode = ai_mode
         if self.ai_mode:
-            self.agent = dqa.DQNAgent(c.GRID_LEN * c.GRID_LEN, len(self.commands))  # Initialize DQN Agent
+            self.agent = qla.QLearningAgent()
             self.train_agent()
-            
+            self.plot_scores()
         else:
             self.mainloop()
 
-    # Rest of the code remains the same..
-
 
     def train_agent(self):
+        plt.ion()  # Enable interactive mode
         fig, ax = plt.subplots()  # Create a figure and axis for the plot
+        start_times = []
+        end_times = []
 
-        num_episodes = 1000
-        for episode in range(num_episodes):  # Train for 1000 episodes
-            self.agent.epsilon -= (1.0 - self.agent.epsilon_min) / num_episodes
+        num_episodes = 100000
+        for episode in range(num_episodes):  # Train for 10000 episodes
+            start_time = datetime.datetime.now()
+            start_times.append(start_time)
             self.matrix = logic.new_game(c.GRID_LEN)
             self.history_matrixs = []
-            # self.update_grid_cells()
+            self.update_grid_cells()
 
             while True:
                 state = self.matrix.copy()
-                state_1 = np.array(self.matrix).flatten()  # flatten the state
-                action = self.agent.choose_action(state_1)
-                action_2 = c.ACTIONS[action]
-                action_done = self.perform_action(action_2)
-                print(state[0])
-                print(state[1])
-                print(state[2])
-                print(state[3])
+                print(f"state: {state}")
+                action = self.agent.choose_action(state, c.ACTIONS)
+                action_done = self.perform_action(action)
+                # print(f"action: {action} action_done: {action_done}")
 
                 if action_done:
                     next_state = self.matrix.copy()
-                    next_state_1 = np.array(self.matrix).flatten() # flatten the state
                     reward = logic.get_reward(state, action, next_state)
-                    game_over = logic.game_state(self.matrix)[0] in ['win', 'lose']
-                    self.agent.learn(state_1, action, reward, next_state_1, game_over)
-                    print(f"iteration {episode} reward: {reward} epsilon: {self.agent.epsilon}\n")
+                    self.agent.learn(state, action, next_state, reward)
+                    print(f"reward: {reward} epsilon: {self.agent.epsilon}\n")
 
                 game_over = logic.game_state(self.matrix)[0] in ['win', 'lose']
                 if game_over:
                     _, score = logic.game_state(self.matrix)
                     self.save_score(score)
-                    self.plot_scores(fig, ax, episode)
+                    end_time = datetime.datetime.now()
+                    end_times.append(end_time)
+                    self.plot_scores(fig, ax, start_times, end_times, episode)
                     break
+
+        plt.ioff()  # Disable interactive mode
+        plt.show()  # Keep the plot window open
 
     def perform_action(self, action):
         if action in self.commands:
@@ -102,7 +97,7 @@ class GameGrid(Frame):
             if done:
                 self.matrix = logic.add_two(self.matrix)
                 self.history_matrixs.append(self.matrix)
-                # self.update_grid_cells()
+                self.update_grid_cells()
             return done
         return False
 
@@ -184,16 +179,17 @@ class GameGrid(Frame):
         with open('scores.pickle', 'wb') as f:
             pickle.dump(self.scores, f)
 
-    def plot_scores(self, fig, ax, episode):
+    def plot_scores(self, fig, ax, start_times, end_times, episode):
         ax.clear()  # Clear the axis
         x_values = list(range(episode + 1))  # X-axis represents the number of episodes
         ax.scatter(x_values, self.scores, marker='o')
         ax.set_xlabel('Episode')
         ax.set_ylabel('Score')
         ax.set_title('Scores over Episodes')
-        plt.savefig('plot.png')
 
-        # plt.draw()  # Redraw the plot
+        plt.draw()  # Redraw the plot
         plt.pause(0.001)  # Pause to allow the plot to update
+
+
 
 game_grid = GameGrid(ai_mode=True)

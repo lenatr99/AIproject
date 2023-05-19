@@ -8,6 +8,7 @@
 
 import random
 import constants as c
+import math
 
 #######
 # Task 1a #
@@ -62,26 +63,27 @@ def game_state(mat):
     for i in range(len(mat)):
         for j in range(len(mat[0])):
             if mat[i][j] == 2048:
-                return 'win'
+                return 'win', score
     # check for any zero entries
     for i in range(len(mat)):
         for j in range(len(mat[0])):
             if mat[i][j] == 0:
-                return 'not over'
+                return 'not over', score
     # check for same cells that touch each other
     for i in range(len(mat)-1):
         # intentionally reduced to check the row on the right and below
         # more elegant to use exceptions but most likely this will be their solution
         for j in range(len(mat[0])-1):
             if mat[i][j] == mat[i+1][j] or mat[i][j+1] == mat[i][j]:
-                return 'not over'
+                return 'not over', score
     for k in range(len(mat)-1):  # to check the left/right entries on the last row
         if mat[len(mat)-1][k] == mat[len(mat)-1][k+1]:
-            return 'not over'
+            return 'not over', score
     for j in range(len(mat)-1):  # check up/down entries on last column
         if mat[j][len(mat)-1] == mat[j+1][len(mat)-1]:
-            return 'not over'
+            return 'not over', score
     return 'lose', score
+
 
 ###########
 # Task 2a #
@@ -197,21 +199,30 @@ def right(game):
     game = reverse(game)
     return game, done
 
+def findemptyCell(mat):
+    count = 0
+    for i in range(len(mat)):
+        for j in range(len(mat)):
+            if(mat[i][j]==0):
+                count+=1
+    return count
+
 
 def get_reward(state, action, next_state):
     max_tile = max(map(max, state))
     next_max_tile = max(map(max, next_state))
-    game_over = game_state(next_state)[0]
-    game_over1 = game_over in ['win', 'lose']
-    score = sum(map(sum, state))
-    next_score = sum(map(sum, next_state))
-    score_diff = next_score - score
+    reward = 0
 
-    if game_over1:
-        if game_over == 'lose':
-            punishment = -1000
-            return punishment
-        else:
-            return 1000  # Reward for winning the game
-    else:
-        return score_diff * max_tile + (next_max_tile - max_tile) * 100  # Encourage merging higher tiles and penalize no progress
+    #get number of merges
+    empty1 = findemptyCell(state)
+    empty2 = findemptyCell(next_state)
+
+    #reward math.log(next_max,2)*0.1 if next_max is higher than prev max
+    if next_max_tile > max_tile:
+        reward += math.log(next_max_tile,2)*0.1
+
+    #reward for number of merges
+    reward += (empty2-empty1)
+
+
+    return reward

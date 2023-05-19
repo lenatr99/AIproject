@@ -5,7 +5,7 @@ import constants as c
 import logic
 
 class QLearningAgent:
-    def __init__(self, alpha=0.1, gamma=0.99, epsilon=1.0, epsilon_decay=0.9, min_epsilon=0.01):
+    def __init__(self, alpha=0.1, gamma=0.99, epsilon=1.0, epsilon_decay=0.99, min_epsilon=0.01):
         self.alpha = alpha
         self.gamma = gamma
         self.epsilon = epsilon
@@ -30,6 +30,9 @@ class QLearningAgent:
 
         new_q_value = (1 - self.alpha) * old_q_value + self.alpha * (reward + self.gamma * max_next_q_value)
         self.q_table[state_key][action_idx] = new_q_value
+
+    def decay_epsilon(self, num_episodes):
+        self.epsilon = max(self.min_epsilon, self.epsilon - (2 / num_episodes))
 
 
     @staticmethod

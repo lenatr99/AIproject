@@ -6,6 +6,15 @@ from keras.layers import Dense, Conv2D, Flatten, Reshape
 from keras.models import Sequential
 from keras.optimizers import Adam, RMSprop
 
+
+
+@tf.custom_gradient
+def gradient_checkpoint(x):
+    y = tf.identity(x)
+    def custom_grad(dy):
+        return tf.recompute_grad(y, dy)
+    return y, custom_grad
+
 class DQNAgent:
     def __init__(self, state_size, action_size, alpha = 0.001, gamma=0.99, epsilon=0.9, epsilon_decay=0.99, min_epsilon=0.01):
         self.state_size = state_size
@@ -23,14 +32,17 @@ class DQNAgent:
         self.conv_strides = (1,1)
 
         # fully connected layers
-        self.hidden_units = 256
+        self.hidden_units = 128
         self.output_units = 4
 
         # optimizer
-        self.optimizer = RMSprop(learning_rate=self.alpha,epsilon=self.epsilon, decay=self.epsilon_decay)
+        self.optimizer = RMSprop(learning_rate=self.alpha, epsilon=1e-8, rho=0.9) 
+
 
         self.input_shape = (4,4,16)
         self.model = self._build_model()
+
+
 
 
     def _build_model(self): 
@@ -76,8 +88,9 @@ class DQNAgent:
             target[0][action] = reward
         else:
             Q_future = max(self.model.predict(next_state)[0])
-            print(action)
             target[0][action] = reward + self.gamma * Q_future
-        self.model.fit(state, target, epochs=1, verbose=0)
-        if((ep>10000) or (self.epsilon>0.1 and total_iters%2500==0)):
+        self.model.fit(state, gradient_checkpoint(target), epochs=1, verbose=0)
+        if((ep>1000) or (self.epsilon>0.1 and total_iters%200==0)):
                 self.epsilon = self.epsilon/1.005
+
+

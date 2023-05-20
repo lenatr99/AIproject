@@ -1,4 +1,5 @@
 import tkinter
+import tensorflow as tf
 from tkinter import Frame, Label, CENTER
 import random
 import logic
@@ -13,6 +14,7 @@ import threading
 import queue
 import matplotlib
 import math
+from keras.utils import to_categorical
 matplotlib.use('Agg')
 
 
@@ -29,6 +31,15 @@ def change_values(X):
                 power = int(math.log(X[i][j],2))
                 power_mat[0][i][j][power] = 1.0
     return power_mat  
+
+def one_hot_encode(state, num_states):
+    # Flatten the grid
+    flattened = state.flatten()
+
+    # One-hot encode each cell in the flattened grid
+    one_hot_encoded = to_categorical(flattened, num_classes=num_states)
+
+    return one_hot_encoded
 
 class GameGrid(Frame):
     def __init__(self, ai_mode=False):
@@ -67,7 +78,7 @@ class GameGrid(Frame):
     def train_agent(self):
         fig, ax = plt.subplots()  # Create a figure and axis for the plot
         total_iters = 1
-        num_episodes = 100
+        num_episodes = 20000
         for episode in range(num_episodes):  # Train for 1000 episodes
             self.matrix = logic.new_game(c.GRID_LEN)
             self.history_matrixs = []
@@ -75,16 +86,14 @@ class GameGrid(Frame):
 
             while True:
                 state = self.matrix.copy()
+                print(one_hot_encode(state, 16))
                 state_1 = change_values(state)
                 print(state_1.shape)
                 # state_1 = np.array(state,dtype = np.float32).reshape(1,4,4,16)
                 action = self.agent.choose_action(state_1)
                 action_2 = c.ACTIONS[action]
                 action_done = self.perform_action(action_2)
-                print(state[0])
-                print(state[1])
-                print(state[2])
-                print(state[3])
+                print(state)
 
                 if action_done:
                     next_state = self.matrix.copy()
@@ -98,7 +107,7 @@ class GameGrid(Frame):
                 if game_over:
                     _, score = logic.game_state(self.matrix)
                     self.save_score(score)
-                    self.plot_scores(fig, ax, episode)
+                    # self.plot_scores(fig, ax, episode)
                     break
                 total_iters += 1
 

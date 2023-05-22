@@ -138,7 +138,7 @@ class Agent():
         self.qnetwork_target = QNetwork(state_size, action_size, seed).to(device)
         self.optimizer = optim.Adam(self.qnetwork_local.parameters(), lr=lr)
         lr_s = lambda epoch: 0.998 ** (epoch % 1000) if epoch < 100000 else 0.999 ** (epoch % 1000) 
-        self.lr_decay = optim.lr_scheduler.StepLR(self.optimizer, 1000, 0.9)
+        self.lr_decay = optim.lr_scheduler.StepLR(self.optimizer, 1000, 0.9999)
 
         # Replay buffer
         self.memory = ReplayBuffer(action_size, buffer_size, batch_size, seed)

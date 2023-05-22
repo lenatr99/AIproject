@@ -1,5 +1,6 @@
 import numpy as np
 import matplotlib.pyplot as plt
+import pickle
 
 ACTION_UP = 0
 ACTION_DOWN = 1
@@ -94,7 +95,7 @@ class Game():
                     row[i+1] = 0
                     if row[i] > max_tile:
                         if self.reward_mode == 'log2':
-                            self.reward += np.log2(row[i])*0.1
+                            self.reward += np.log2(row[i])
                         else:
                             self.reward += row[i]
                         max_tile = row[i]

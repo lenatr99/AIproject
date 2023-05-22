@@ -319,17 +319,10 @@ class Agent():
 
                 # Get expected Q values from local model
                 Q_expected = self.qnetwork_local(states).gather(1, actions)
-
-                # Get maximum Q values for the next states from target model
-                Q_next_max = self.qnetwork_target(next_states).detach().max(1)[0].unsqueeze(1)
-                
-                # Calculate target Q values using Bellman equation with discounted future rewards
-                Q_target = rewards + gamma * Q_next_max * (1 - dones)
                 
 
                 # Compute loss
-                loss = F.mse_loss(Q_expected, Q_target)
-                # print(loss)
+                loss = F.mse_loss(Q_expected, rewards)
                 
                 losses.append(loss.detach().numpy())
 

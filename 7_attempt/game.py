@@ -38,7 +38,7 @@ class Game():
             for i in range(self.board_dim - 1):
                 for j in range(self.board_dim - 1):
                     if board[i,j] >= board[i,j+1] and board[i,j] >= board[i+1,j]:
-                        base_reward += 0.2
+                        base_reward += 0.3
         
 
         return base_reward

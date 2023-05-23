@@ -134,13 +134,13 @@ class Game():
             self.fill_random_empty_cell()
 
             # Reward is the sum of the merged cells minus step cost
-            self.reward = self.reward - self.current_cell_move_penalty
+            self.reward = self.reward - self.current_cell_move_penalty #!!!!
             
             self.score = np.sum(self.game_board)
             self.done = self.check_is_done()
             self.moved = True
         else:
-            self.reward = self.negative_reward
+            self.reward = self.negative_reward #!!!!
             self.moved = False
         self.steps += 1
         self.rewards_list.append(self.reward)

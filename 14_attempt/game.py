@@ -11,57 +11,11 @@ base_dir = '.'
 
 class Game():
     """ 2048 game environment"""
-    def __init__(self, size = 4, seed = 42, edge_max_bonus=0.5, open_square_bonus=0.2):
+    def __init__(self, size = 4, seed = 42):
         self.board_dim = size               # board dimension
         self.state_size = size * size       # total number of cells
         self.action_size = 4                # number of available actions
         np.random.seed(seed)
-        self.edge_max_bonus = edge_max_bonus  # Bonus for having large values on the edge
-        self.open_square_bonus = open_square_bonus  # Bonus for open squares
-
-    def non_monotonic_penalty(self):
-        """Penalize the board state for having non-monotonic rows and columns."""
-        penalty = 0
-        for row in self.game_board:
-            row_sorted = np.sort(row)
-            row_penalty = min(np.sum(row != row_sorted), np.sum(row != row_sorted[::-1]))  # Count the number of tiles in the wrong order
-            penalty += row_penalty
-
-        for col in self.game_board.T:  # .T for transpose to get columns
-            col_sorted = np.sort(col)
-            col_penalty = min(np.sum(col != col_sorted), np.sum(col != col_sorted[::-1]))  # Count the number of tiles in the wrong order
-            penalty += col_penalty
-
-        return penalty * 0.1
-
-    def calculate_merge_count_bonus(self):
-        """Give a bonus for the number of potential merges on the board."""
-        bonus = 0
-        for row in self.game_board:
-            for i in range(len(row) - 1):
-                if row[i] == row[i+1] and row[i] != 0:
-                    bonus += np.log2(row[i])*0.1
-
-        for col in self.game_board.T:  # .T for transpose to get columns
-            for i in range(len(col) - 1):
-                if col[i] == col[i+1] and col[i] != 0:
-                    bonus += np.log2(col[i])*0.1
-
-        return bonus
-
-
-    def calculate_edge_max_bonus(self):
-        """ Grant bonus if the maximum number is on the edge """
-        max_val = np.max(self.game_board)
-        if max_val in self.game_board[0, :] or max_val in self.game_board[-1, :] or max_val in self.game_board[:, 0] or max_val in self.game_board[:, -1]:
-            return self.edge_max_bonus
-        else:
-            return 0
-
-    def calculate_open_square_bonus(self):
-        """ Grant bonus for open squares """
-        open_squares = np.sum(self.game_board == 0)
-        return open_squares * self.open_square_bonus
         
     def reset(self, init_fields = 2):
         """ Initializes the board
@@ -69,8 +23,6 @@ class Game():
         Params
         ======
             init_fields (int): how many fields to fill initially
-            step_penalty (int): the cost of an action
-            bootstrapping (bool): whether to create a new (initial) board or simulate some intermediate game state
         """
         self.game_board = np.zeros((self.board_dim, self.board_dim))
         
@@ -78,11 +30,8 @@ class Game():
             self.fill_random_empty_cell()
             
         self.score = np.sum(self.game_board)
-        self.reward = 0
-        self.current_cell_move_penalty = 0
         self.done = False
         self.steps = 0
-        self.rewards_list = []
         self.scores_list = []
         self.history = []
         
@@ -91,7 +40,6 @@ class Game():
             'new_board': self.game_board.copy(),  
             'old_board': None,
             'score': self.score,
-            'reward': self.reward
         })
         
     def shift(self, board):
@@ -109,8 +57,6 @@ class Game():
         
     def calc_board(self, board):
         """ Calculate all cell mergers and return the new state of the board"""
-        
-        self.reward = 0
         
         shifted_board = self.shift(board)
         
@@ -157,17 +103,12 @@ class Game():
             # Fill an empty cell with a new value
             self.game_board = temp_board.copy()
             self.fill_random_empty_cell()
-
-            # Reward is the sum of edge max bonus, open square bonus, merge count bonus and non-monotonic penalty
-            self.reward = self.calculate_edge_max_bonus() + self.calculate_open_square_bonus() - self.non_monotonic_penalty() + self.calculate_merge_count_bonus()
-
             self.score = np.sum(self.game_board)
             self.done = self.check_is_done()
             self.moved = True
         else:
             self.moved = False
         self.steps += 1
-        self.rewards_list.append(self.reward)
 
         # Save the new state
         self.history.append({
@@ -176,10 +117,9 @@ class Game():
             'old_board': old_board,
             'new_board': self.game_board.copy(),  
             'score': self.score,
-            'reward': self.reward
         })
 
-        return (self.game_board, self.reward, self.done)
+        return (self.game_board, self.done)
 
     def virtual_step(self, action):
         if action == ACTION_LEFT:
@@ -199,11 +139,10 @@ class Game():
                     self.calc_board(np.flip(np.transpose(self.game_board), axis=1)), axis=1))
         else: # just in case it happens
             return (self.game_board, 0, self.done)
-        
-        self.reward = self.reward - self.step_penalty
+
         self.score = np.sum(self.game_board)
         self.done = self.check_is_done(new_game_board)
-        return (new_game_board, self.reward, self.done)
+        return (new_game_board, self.done)
     
     
     def check_is_done(self, board = None):

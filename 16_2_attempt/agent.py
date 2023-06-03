@@ -8,7 +8,7 @@ class Agent():
     """ Interacts with and learns from the environment """
 
     def __init__(self, state_size = 4*4, action_size = 4, seed = 42,
-                 edge_max_bonus=0.5, open_square_bonus=0.2):
+                 corner_max_bonus=1.5, edge_max_bonus=0.5, open_square_bonus=0.2):
         """Initialize an Agent object.
 
         Params
@@ -21,6 +21,7 @@ class Agent():
             
         """
         self.depth = 2
+        self.corner_max_bonus = corner_max_bonus
         self.edge_max_bonus = edge_max_bonus  # Bonus for having large values on the edge
         self.open_square_bonus = open_square_bonus  # Bonus for open squares
         
@@ -43,8 +44,7 @@ class Agent():
             col_sorted = np.sort(col)
             col_penalty = min(np.sum(col != col_sorted), np.sum(col != col_sorted[::-1]))  # Count the number of tiles in the wrong order
             penalty += col_penalty
-
-        return penalty * 0.1
+        return -penalty * 0.1
 
     def calculate_merge_count_bonus(self, state):
         """Give a bonus for the number of potential merges on the board."""
@@ -64,7 +64,9 @@ class Agent():
     def calculate_edge_max_bonus(self, state):
         """ Grant bonus if the maximum number is on the edge """
         max_val = np.max(state)
-        if max_val in state[0, :] or max_val in state[-1, :] or max_val in state[:, 0] or max_val in state[:, -1]:
+        if max_val == state[0, 0] or max_val == state[-1, 0] or max_val == state[-1, -1] or max_val == state[0, -1]:
+            return self.corner_max_bonus
+        elif max_val in state[0, :] or max_val in state[-1, :] or max_val in state[:, 0] or max_val in state[:, -1]:
             return self.edge_max_bonus
         else:
             return 0
@@ -78,9 +80,9 @@ class Agent():
     def evaluate(self, state):
         """Evaluate the state of the game board."""
         state = state.reshape(4,4)
-
+        # print(self.calculate_edge_max_bonus(state), self.calculate_open_square_bonus(state), self.non_monotonic_penalty(state), self.calculate_merge_count_bonus(state) )
         # The value of the state is the score minus the penalty plus the bonus
-        value = self.calculate_edge_max_bonus(state) + self.calculate_open_square_bonus(state) - self.non_monotonic_penalty(state) + self.calculate_merge_count_bonus(state)
+        value = self.calculate_edge_max_bonus(state) + self.calculate_open_square_bonus(state) + self.non_monotonic_penalty(state) + self.calculate_merge_count_bonus(state)
 
         return value
 
@@ -162,17 +164,21 @@ class Agent():
             depth (int): depth of the expectimax tree
         """
         if depth == 0 or self.is_terminal(state):
+            # print("evaluate:   ", self.evaluate(state)) # for debugging
             return self.evaluate(state)
 
         if self.is_max_node(state):
             max_value = float("-inf")
             for child in self.get_children(state):
                 max_value = max(max_value, self.expectimax(child, depth - 1))
+            # print("max_value:  ", max_value) # for debugging
             return max_value
         else:
             expected_value = 0
             for child, probability in self.get_children_with_probabilities(state):
-                expected_value += probability * self.expectimax(child, depth - 1)  
+                expected_value += probability * self.expectimax(child, depth - 1)
+            # print("exp_value:  ", expected_value) # for debugging
+            # print("depth:      ", depth) # for debugging    
             return expected_value
         
     def get_child(self, state, action):
@@ -269,5 +275,10 @@ class Agent():
         actions = np.array(actions)
         max_value = float("-inf")
         state = state.reshape(4,4)
+        # print(state)
+        for action in self.get_possible_actions(state):
+            child = self.get_child(state, action)
+            value = self.expectimax(child, self.depth)
+            actions[action] += value   
         actions = actions[np.newaxis, :]
         return actions

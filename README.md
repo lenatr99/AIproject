@@ -8,6 +8,7 @@ Based on the popular game [2048](https://github.com/gabrielecirulli/2048) by Gab
 We use different AI models to train the game to play itself. The models we use are:
 * QLearning
 * Deep QLearning
+* Expectimax
 
 
 ![screenshot](img/screenshot.png)
